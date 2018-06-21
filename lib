@@ -1,0 +1,46 @@
+# shellcheck shell=bash
+# vim: ft=sh
+
+# Support functions
+
+function ssh_version() {
+    ssh -V 2>&1 | perl -ne '/^OpenSSH_(\d+\.\d+)/ and print "$1";'
+}
+
+function ssh_back() {
+    local remote="$1"
+    local timeout=60
+    local port=0
+    shift
+
+    case $(ssh_version) in
+        5.*)
+            port=55555
+			# shellcheck disable=SC2029
+            ssh -f -R "$port":127.0.0.1:22 "$remote" sleep "$timeout" >/dev/null 2>&1
+            ;;
+        *)
+			# shellcheck disable=SC2029
+            port="$(ssh -f -R 0:127.0.0.1:22 "$remote" sleep "$timeout" 2>&1 >/dev/null | head -1 | perl -ne '/Allocated port (\d+)/ and print "$1"')"
+            ;;
+    esac
+
+    local args="-o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -p $port"
+	# shellcheck disable=SC2029
+    [[ -n "$port" ]] && ssh -A "$remote" "SSH_BACK_PORT=$port; SSH_BACK_USER=$USER; SSH_BACK_ARGS='$args'; $*" 2> >(grep -v "Permanently added")
+}
+
+# Fallback functions
+
+if ! which systemctl >/dev/null; then
+function systemctl() {
+    case "$1" in
+        start|stop|restart|reload)
+            service "$2" "$1"
+            ;;
+        *)
+            false
+            ;;
+    esac
+}
+fi

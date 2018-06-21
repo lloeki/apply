@@ -1,0 +1,41 @@
+#!/bin/bash
+
+set -e
+set -u
+
+function usage() {
+    echo "usage: $(basename "$0") [-v] <target> [<target>...] <user@remote>"
+    exit 1
+}
+
+if [[ $# -lt 1 ]]; then
+    usage
+fi
+
+if [[ "$1" == "-v" ]]; then
+    vflag='-v'
+    shift
+else
+    vflag=''
+fi
+
+if [[ $# -lt 2 ]]; then
+    usage
+fi
+
+targets=()
+while [[ $# -gt 1 ]]; do
+    targets+=("$1")
+    shift
+done
+
+remote="$1"
+
+tmp=$(ssh "$remote" 'mktemp -d')
+echo -e -n "\033[33m** pushing to\033[0m $remote:$tmp"
+if scp -q -r groups units run lib "$remote":"$tmp"; then
+    echo -e " \033[32mOK\033[0m"
+fi
+
+# shellcheck disable=SC2029
+ssh -A "$remote" "cd '$tmp'; ./run $vflag ${targets[*]}"

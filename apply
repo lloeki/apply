@@ -1,0 +1,63 @@
+#!/bin/bash
+
+set -e
+set -u
+
+function usage() {
+    echo "usage: $(basename "$0") [-v] [-p] <host> [<host>...]"
+    exit 1
+}
+
+function host_targets() {
+    local host="$*"
+
+    cat < "$host" | tr '\n' ' '
+}
+
+function push_each() {
+    local vflag="$1"
+    local parallelize="$2"
+    shift
+    shift
+    if [[ -n $parallelize ]]; then
+        # shellcheck disable=SC2086
+        parallel -j10 --progress --colsep ' ' ./push $vflag
+    else
+        # shellcheck disable=SC2086
+        parallel -j1 -u --colsep ' ' ./push $vflag
+    fi
+}
+
+if [[ $# -lt 1 ]]; then
+    usage
+fi
+
+if [[ "$1" == "-v" ]]; then
+    vflag='-v'
+    shift
+else
+    vflag=''
+fi
+
+if [[ "$1" == "-p" ]]; then
+    pflag='-p'
+    shift
+else
+    pflag=''
+fi
+
+if [[ $# -lt 1 ]]; then
+    usage
+fi
+
+hosts=()
+while [[ $# -gt 0 ]]; do
+    hosts+=("$1")
+    shift
+done
+
+for host in ${hosts[*]}; do
+    target=${host#*/}
+    # shellcheck disable=SC2046
+    echo $(host_targets "$host") root@"$target"
+done | push_each "$vflag" "$pflag"

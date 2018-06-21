@@ -1,0 +1,148 @@
+#!/bin/bash
+
+set -e
+set -u
+
+function usage() {
+    echo "usage: $(basename "$0") [-v] <target> [<target>...]"
+    exit 1
+}
+
+function root_path() {
+    cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd
+}
+
+function read_group() {
+    local target="$*"
+
+    while read -r item; do
+        if [[ ! "$item" == '#'* ]]; then
+            echo "$item"
+        fi
+    done < "$(root_path)/$target" 
+}
+
+function run_group() {
+    local target="$*"
+
+    for item in $(read_group "$target"); do
+        if [[ ! "$item" == '#'* ]]; then
+            run_pretty "$item"
+        fi
+    done
+}
+
+function run_unit() {
+    /bin/bash -l -c "set -e; set -u; set -o pipefail; source lib; source '$*'"
+}
+
+function log_file() {
+    echo -n "$LOG_DIR/"
+    echo "${1/\//_}.log"
+}
+
+function check_target() {
+    local target="$*"
+
+    if [[ ! -f "$(root_path)/$target" ]]; then
+        echo "missing $target"
+        return 1
+    fi
+
+    if [[ $target == groups/* ]]; then
+        for item in $(read_group "$target"); do
+            check_target "$item"
+        done
+    fi
+}
+
+function run_pretty() {
+    local target="$*"
+
+    case "$target" in
+        groups/*)
+            echo -e "\033[33m** \033[34m$target \033[33mprocessing...\033[0m"
+            run_group "$target"
+            echo -e "\033[33m** \033[34m$target \033[32mOK\033[0m"
+            ;;
+
+        units/*)
+            run_pretty_unit "$target"
+            ;;
+        *)
+            echo "unsupported command: $target"
+            ;;
+    esac
+}
+
+function run_pretty_unit() {
+    local rc
+    local log_file
+    local target="$*"
+
+    echo -e -n "\033[33m** \033[34m$target\033[0m"
+    [[ "$VERBOSE" == "1" ]] && echo -e ": \033[33mstarting...\033[0m"
+
+    log_file=$(log_file "$@")
+
+    if [[ "$VERBOSE" == "1" ]]; then
+        set +e
+        run_unit "$@"
+        rc=$?
+        set -e
+    else
+        set +e
+        run_unit "$@" >"$log_file" 2>&1
+        rc=$?
+        set -e
+    fi
+
+    if [[ "$VERBOSE" == "1" ]]; then
+        echo -e -n "\033[33m** \033[34m$target\033[0m: "
+    else
+        echo -n " "
+    fi
+
+    if [[ $rc -eq 0 ]]; then
+        echo -e "\033[32mOK\033[0m"
+    else
+        echo -e "\033[31mFAILED\033[0m"
+        if [[ "$VERBOSE" == "1" ]]; then
+            echo "For details, see output above" 1>&2
+        else
+            echo "Here are the last lines of output:" 1>&2
+            tail -n20 "$log_file" 1>&2
+            echo "For details, see $log_file" 1>&2
+        fi
+        exit $rc
+    fi
+}
+
+
+if [[ $# -lt 1 ]]; then
+    usage
+fi
+
+if [[ "$1" == "-v" ]]; then
+    VERBOSE="1"
+    shift
+else
+    VERBOSE="0"
+fi
+
+if [[ $# -lt 1 ]]; then
+    usage
+fi
+
+targets=( "$@" )
+
+# pre-flight checks
+for target in "${targets[@]}"; do
+    check_target "$target"
+done
+
+# fly!
+LOG_DIR=$(mktemp -d)
+for target in "${targets[@]}"; do
+    run_pretty "$target"
+done
