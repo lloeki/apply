@@ -122,7 +122,6 @@ function run_pretty_unit() {
     fi
 }
 
-
 if [[ $# -lt 1 ]]; then
     usage
 fi
