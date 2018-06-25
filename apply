@@ -11,7 +11,7 @@ function usage() {
 function host_targets() {
     local host="$*"
 
-    cat < "$host" | tr '\n' ' '
+    cat < "${APPLY_ROOT}"/"$host" | tr '\n' ' '
 }
 
 function push_each() {
@@ -27,6 +27,10 @@ function push_each() {
         parallel -j1 -u --colsep ' ' ./push $vflag
     fi
 }
+
+if [[ -z "${APPLY_ROOT:-}" ]]; then
+    APPLY_ROOT="."
+fi
 
 if [[ $# -lt 1 ]]; then
     usage

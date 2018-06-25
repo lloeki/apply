@@ -9,7 +9,11 @@ function usage() {
 }
 
 function root_path() {
-    cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd
+    if [[ -z "${APPLY_ROOT:-}" ]]; then
+        cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd
+    else
+        echo "$APPLY_ROOT"
+    fi
 }
 
 function read_group() {
@@ -19,7 +23,7 @@ function read_group() {
         if [[ ! "$item" == '#'* ]]; then
             echo "$item"
         fi
-    done < "$(root_path)/$target" 
+    done < "$(root_path)/$target"
 }
 
 function run_group() {
@@ -33,7 +37,7 @@ function run_group() {
 }
 
 function run_unit() {
-    /bin/bash -l -c "set -e; set -u; set -o pipefail; source lib; source '$*'"
+    /bin/bash -l -c "set -e; set -u; set -o pipefail; source lib; source '$(root_path)/$*'"
 }
 
 function log_file() {

@@ -8,6 +8,10 @@ function usage() {
     exit 1
 }
 
+if [[ -z "${APPLY_ROOT:-}" ]]; then
+    APPLY_ROOT="."
+fi
+
 if [[ $# -lt 1 ]]; then
     usage
 fi
@@ -33,7 +37,7 @@ remote="$1"
 
 tmp=$(ssh "$remote" 'mktemp -d')
 echo -e -n "\033[33m** pushing to\033[0m $remote:$tmp"
-if scp -q -r groups units run lib "$remote":"$tmp"; then
+if scp -q -r "${APPLY_ROOT}"/{groups,units,run,lib} "$remote":"$tmp"; then
     echo -e " \033[32mOK\033[0m"
 fi
 
