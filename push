@@ -42,4 +42,4 @@ if scp -q -r "${APPLY_ROOT}"/{groups,units} run lib "$remote":"$tmp"; then
 fi
 
 # shellcheck disable=SC2029
-ssh -A "$remote" "cd '$tmp' && ./run $vflag ${targets[*]} && cd -; rm -rf '$tmp'"
+ssh -A "$remote" "cd '$tmp' && ./run $vflag ${targets[*]} && cd; rm -rf '$tmp'"
