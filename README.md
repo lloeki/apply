@@ -7,25 +7,25 @@ machine.
 
 `push` pushes bash scripts called `unit`s through ssh to execute:
 
-   ./push -v units/update units/sshd units/ssh_authorized_keys root@1.2.3.4
+    ./push -v units/update units/sshd units/ssh_authorized_keys root@1.2.3.4
    
 Units are processed on the target machine by the `run` script. Each unit executes within its own subshell so no variable leak occurs. Each subshell is run with `set -euo pipefail`. Each subshell also sources the contents of `lib` which defines a few convenience functions.
 
 By writing those unit scripts to be idempotent you can just run them again and again. Units can be aggregated in `group`s, which can themselves reference other groups:
 
-   ./push -v groups/base groups/ruby units/dockerd root@foo.example.com
+    ./push -v groups/base groups/ruby units/dockerd root@foo.example.com
 
 Finally, you can define `host`s, which are like groups, only they save you some typing to apply units to multiple targets:
 
-   ./apply -v hosts/foo.example.com hosts/bar.example.com
+    ./apply -v hosts/foo.example.com hosts/bar.example.com
    
 The above can be made to process hosts in parallel:
 
-   ./apply -v -p hosts/foo.example.com hosts/bar.example.com
+    ./apply -v -p hosts/foo.example.com hosts/bar.example.com
 
 Since `units/`, `groups/`, and `hosts/`, are just directories and files, autocompletion works immediately and you could get creative with shell expansion for arguments.
 
-   ./apply hosts/{foo,bar}.example.com hosts/test.*
+    ./apply hosts/{foo,bar}.example.com hosts/test.*
 
 ## Rationale
 
