@@ -1,46 +1,42 @@
-# shellcheck shell=bash
+# shellcheck shell=dash
 # vim: ft=sh
 
-# Support functions
+# substitute replaces all occurances of one string with another in the provided
+# file, writing to the specified output file.
+substitute() {
+    local input="$1"
+    local output="$2"
 
-function ssh_version() {
-    ssh -V 2>&1 | perl -ne '/^OpenSSH_(\d+\.\d+)/ and print "$1";'
+    shift 2
+
+    # TODO: real parsing
+    local search="$1"
+    local replace="$2"
+
+        #-v RS="$(printf "\0")" \
+    awk \
+        -v srch="$search" \
+        -v repl="$replace" \
+        -v RS="" \
+        -v ORS="" \
+        '{ gsub(srch, repl, $0); print $0 }' \
+        < "$input" > "$output"
 }
 
-function ssh_back() {
-    local remote="$1"
-    local timeout=60
-    local port=0
+# substituteInPlace works like substitute but operates in-place on the provided
+# file
+substituteInPlace() {
+    local fpath="$1"
     shift
 
-    case $(ssh_version) in
-        5.*)
-            port=55555
-			# shellcheck disable=SC2029
-            ssh -f -R "$port":127.0.0.1:22 "$remote" sleep "$timeout" >/dev/null 2>&1
-            ;;
-        *)
-			# shellcheck disable=SC2029
-            port="$(ssh -f -R 0:127.0.0.1:22 "$remote" sleep "$timeout" 2>&1 >/dev/null | head -1 | perl -ne '/Allocated port (\d+)/ and print "$1"')"
-            ;;
-    esac
+    local tmpfile
+    tmpfile="$(mktemp)"
+    
+    if ! substitute "$fpath" "$tmpfile" "$@"; then
+        rm "$tmpfile"
+        return $?
+    fi
 
-    local args="-o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -p $port"
-	# shellcheck disable=SC2029
-    [[ -n "$port" ]] && ssh -A "$remote" "SSH_BACK_PORT=$port; SSH_BACK_USER=$USER; SSH_BACK_ARGS='$args'; $*" 2> >(grep -v "Permanently added")
+    # Overwrite now that we've succeeded
+    mv "$tmpfile" "$fpath"
 }
-
-# Fallback functions
-
-if ! which systemctl >/dev/null; then
-function systemctl() {
-    case "$1" in
-        start|stop|restart|reload)
-            service "$2" "$1"
-            ;;
-        *)
-            false
-            ;;
-    esac
-}
-fi
