@@ -1,4 +1,6 @@
 all:
 
 lint:
-	find apply run push lib -type f -not -iname '*.*' | xargs shellcheck -s bash
+	@find apply push lib -type f -not -iname '*.*' | xargs shellcheck -s bash
+	@shellcheck -s dash run
+	@echo -e "\033[032mOK\033[0m"

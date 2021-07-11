@@ -3,71 +3,90 @@
 set -e
 set -u
 
-function usage() {
+RED="$(tput setaf 1)"
+GREEN="$(tput setaf 2)"
+YELLOW="$(tput setaf 3)"
+BLUE="$(tput setaf 4)"
+RESET="$(tput sgr0)"
+
+usage() {
     echo "usage: $(basename "$0") [-v] <target> [<target>...]"
     exit 1
 }
 
-function root_path() {
-    if [[ -z "${APPLY_ROOT:-}" ]]; then
-        cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd
+root_path() {
+    if [ -z "${APPLY_ROOT:-}" ]; then
+        cd -- "$(dirname "$0")" >/dev/null 2>&1 && pwd
     else
         echo "$APPLY_ROOT"
     fi
 }
 
-function read_group() {
+read_group() {
     local target="$*"
 
     while read -r item; do
-        if [[ ! "$item" == '#'* ]]; then
-            echo "$item"
-        fi
+        # Ignore comments
+        case "$item" in
+            '#'*)
+                ;;
+            *)
+                echo "$item"
+                ;;
+        esac
     done < "$(root_path)/$target"
 }
 
-function run_group() {
+run_group() {
     local target="$*"
 
     for item in $(read_group "$target"); do
-        if [[ ! "$item" == '#'* ]]; then
-            run_pretty "$item"
-        fi
+        # Ignore comments
+        case "$item" in
+            '#'*)
+                ;;
+            *)
+                run_pretty "$item"
+                ;;
+        esac
     done
 }
 
-function run_unit() {
+run_unit() {
     /bin/bash -l -c "set -e; set -u; set -o pipefail; source lib; source '$(root_path)/$*'"
 }
 
-function log_file() {
+log_file() {
     echo -n "$LOG_DIR/"
-    echo "${1/\//_}.log"
+    echo -n "$(echo "$1" | sed 's/\//_/g')"
+    echo ".log"
 }
 
-function check_target() {
+check_target() {
     local target="$*"
 
-    if [[ ! -f "$(root_path)/$target" ]]; then
+    if [ ! -f "$(root_path)/$target" ]; then
         echo "missing $target"
         return 1
     fi
 
-    if [[ $target == groups/* ]]; then
-        for item in $(read_group "$target"); do
-            check_target "$item"
-        done
-    fi
+    case "$target" in
+        groups/*)
+            for item in $(read_group "$target"); do
+                check_target "$item"
+            done
+            ;;
+    esac
 }
 
-function run_pretty() {
+run_pretty() {
     local target="$*"
 
     case "$target" in
         groups/*)
-            echo -e "\033[33m** \033[34m$target \033[33mprocessing...\033[0m"
+            printf "${YELLOW}** ${BLUE}%s ${YELLOW}processing...${RESET}\n" "$target"
             run_group "$target"
-            echo -e "\033[33m** \033[34m$target \033[32mOK\033[0m"
+            printf "${YELLOW}** ${BLUE}%s ${GREEN}OK${RESET}\n" "$target"
             ;;
 
         units/*)
@@ -79,17 +98,17 @@ function run_pretty() {
     esac
 }
 
-function run_pretty_unit() {
+run_pretty_unit() {
     local rc
     local log_file
     local target="$*"
 
-    echo -e -n "\033[33m** \033[34m$target\033[0m"
-    [[ "$VERBOSE" == "1" ]] && echo -e ": \033[33mstarting...\033[0m"
+    printf "${YELLOW}** ${BLUE}%s${RESET}" "$target"
+    [ "$VERBOSE" = "1" ] && echo ": ${YELLOW}starting...${RESET}"
 
     log_file=$(log_file "$@")
 
-    if [[ "$VERBOSE" == "1" ]]; then
+    if [ "$VERBOSE" = "1" ]; then
         set +e
         run_unit "$@"
         rc=$?
@@ -101,17 +120,17 @@ function run_pretty_unit() {
         set -e
     fi
 
-    if [[ "$VERBOSE" == "1" ]]; then
-        echo -e -n "\033[33m** \033[34m$target\033[0m: "
+    if [ "$VERBOSE" = "1" ]; then
+        printf "${YELLOW}** ${BLUE}%s${RESET}: " "$target"
     else
-        echo -n " "
+        printf " "
     fi
 
-    if [[ $rc -eq 0 ]]; then
-        echo -e "\033[32mOK\033[0m"
+    if [ $rc -eq 0 ]; then
+        echo "${GREEN}OK${RESET}"
     else
-        echo -e "\033[31mFAILED\033[0m"
-        if [[ "$VERBOSE" == "1" ]]; then
+        echo "${RED}FAILED${RESET}"
+        if [ "$VERBOSE" = "1" ]; then
             echo "For details, see output above" 1>&2
         else
             echo "Here are the last lines of output:" 1>&2
@@ -122,30 +141,28 @@ function run_pretty_unit() {
     fi
 }
 
-if [[ $# -lt 1 ]]; then
+if [ $# -lt 1 ]; then
     usage
 fi
 
-if [[ "$1" == "-v" ]]; then
+if [ "$1" = "-v" ]; then
     VERBOSE="1"
     shift
 else
     VERBOSE="0"
 fi
 
-if [[ $# -lt 1 ]]; then
+if [ $# -lt 1 ]; then
     usage
 fi
 
-targets=( "$@" )
-
 # pre-flight checks
-for target in "${targets[@]}"; do
+for target in "$@"; do
     check_target "$target"
 done
 
 # fly!
-LOG_DIR=$(mktemp -d)
-for target in "${targets[@]}"; do
+LOG_DIR="$(mktemp -d)"
+for target in "$@"; do
     run_pretty "$target"
 done
