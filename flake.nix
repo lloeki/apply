@@ -10,7 +10,12 @@
       rec {
         devShell = pkgs.mkShell {
           buildInputs = with pkgs; [
+            # Shells
+            bash
             dash
+            ksh
+
+            # Tools
             gnumake
             shellcheck
           ];
