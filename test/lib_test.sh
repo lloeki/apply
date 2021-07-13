@@ -95,5 +95,48 @@ testEpochseconds() {
     assertEquals "" "$(epochseconds | tr -d '[0-9]')"
 }
 
+testUserHomedir() {
+    assertEquals "$HOME" "$(user_homedir "$USER")"
+}
+
+testSponge() {
+    for i in $(seq 1 10000); do
+        echo "i am a test line of length 30" >> "$TEST_TMPDIR/largefile.txt"
+        echo "i am a neat line of length 30" >> "$TEST_TMPDIR/expected.txt"
+    done
+
+    # Modify the file; if we don't sponge, this will probably overwrite things
+    # and won't work.
+    cat "$TEST_TMPDIR/largefile.txt" | \
+        sed 's/test/neat/g' | \
+        sponge "$TEST_TMPDIR/largefile.txt"
+
+    # The files should be equal (currently, we just compare CRCs)
+    assertEquals "$(cksum < "$TEST_TMPDIR/largefile.txt")" "$(cksum < "$TEST_TMPDIR/expected.txt")"
+}
+
+testSponge_Permissions() {
+    echo "i am the input file" > "$TEST_TMPDIR/input.txt"
+    echo "i am the output file" > "$TEST_TMPDIR/output.txt"
+
+    # Set a strange permission on the output file that we will replicate.
+    chmod 0741 "$TEST_TMPDIR/output.txt"
+
+    cat "$TEST_TMPDIR/input.txt" | sponge "$TEST_TMPDIR/output.txt"
+
+    # The files should be equal
+    assertEquals "$(cat "$TEST_TMPDIR/input.txt")" "$(cat "$TEST_TMPDIR/output.txt")"
+    assertEquals "741" "$(stat -c '%a' "$TEST_TMPDIR/output.txt")"
+}
+
+testSponge_Append() {
+    echo "one" > "$TEST_TMPDIR/input.txt"
+    echo "two" > "$TEST_TMPDIR/output.txt"
+
+    cat "$TEST_TMPDIR/input.txt" | sponge -a "$TEST_TMPDIR/output.txt"
+
+    assertEquals "$(printf 'two\none\n')" "$(cat "$TEST_TMPDIR/output.txt")"
+}
+
 # Load shUnit2
 . ./shunit2

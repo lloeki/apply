@@ -80,3 +80,62 @@ epochseconds() {
     # TODO(andrew-d): break down and verify the math here
     echo $(( $(TZ=GMT0 date +"((%Y-1600)*365+(%Y-1600)/4-(%Y-1600)/100+(%Y-1600)/400+1%j-1000-135140)*86400+(1%H-100)*3600+(1%M-100)*60+(1%S-100)") ))
 }
+
+# user_homedir returns the home directory for the provided user
+user_homedir() {
+    local user="$1"
+
+    awk \
+        -v u="$user" \
+        -v FS=':' \
+        '$1==u {print $6}' \
+        /etc/passwd
+}
+
+# sponge acts like sponge(1) from moreutils, but is portable.
+#
+# It "soaks up" all input from stdin before writing it to the specified output;
+# helpful for modifying a file in-place with a utility that does not support
+# it.
+sponge() {
+    local append=false
+
+    while getopts 'a' opt; do
+        case $opt in
+            a) append=true ;;
+            *) echo "unknown option: $opt" >&2; exit 1;;
+        esac
+    done
+    shift "$(( OPTIND - 1 ))"
+
+    local outfile="$1"
+    local tmpfile
+
+    tmpfile="$(mktemp "$(dirname "$outfile")/tmp-sponge.XXXXXXXX")" &&
+    cat >"$tmpfile" &&
+    if "$append"; then
+        cat "$tmpfile" >>"$outfile"
+    else
+        if [ -f "$outfile" ]; then
+            # NOTE: the stat() call here isn't exactly portable, but both GNU
+            # coreutils and busybox support it, so close enough? Let's
+            # double-check that it returns something sensible just to be sure.
+            local oldperms
+            oldperms="$(stat -c '%a' "$outfile")"
+
+            if [ "${#oldperms}" = "3" ] && [ -z "$(echo "$oldperms" | tr -d '0-9')" ]; then
+                chmod "$oldperms" "$tmpfile"
+            else
+                printf "warning (bad: %s): not setting permssions on: %s\n" "${oldperms}" "$outfile" >&2
+            fi
+        fi
+        if [ -f "$outfile" ]; then
+            mv "$tmpfile" "$outfile"
+        elif [ -n "$outfile" ] && [ ! -e "$outfile" ]; then
+            cat "$tmpfile" >"$outfile"
+        else
+            cat "$tmpfile"
+        fi
+    fi &&
+    rm -f "$tmpfile"
+}
