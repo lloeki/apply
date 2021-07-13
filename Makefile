@@ -9,11 +9,14 @@ test: lint test-dash test-bash
 
 test-ash:
 	@cd test && ash ./lib_test.sh
+	@cd test && ash ./run_test.sh
 
 test-dash:
 	@cd test && dash ./lib_test.sh
+	@cd test && dash ./run_test.sh
 
 test-bash:
 	@cd test && bash ./lib_test.sh
+	@cd test && bash ./run_test.sh
 
 .PHONY: lint test test-dash test-bash

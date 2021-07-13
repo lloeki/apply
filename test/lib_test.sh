@@ -5,11 +5,13 @@
 . ../lib
 
 oneTimeSetUp() {
-    printf "[INFO] Current shell is: %s\n" "$(cat /proc/$$/cmdline | tr '\0' '\n' | head -n1)"
-    printf "[INFO] Utility paths:\n"
-    for util in awk sed grep; do
-        printf "%8s: %s\n" "$util" "$(which "$util")"
-    done
+    if [ -n "${VERBOSE:-}" ]; then
+        printf "[INFO] Current shell is: %s\n" "$(</proc/$$/cmdline tr '\0' '\n' | head -n1)"
+        printf "[INFO] Utility paths:\n"
+        for util in awk sed grep; do
+            printf "%8s: %s\n" "$util" "$(which "$util")"
+        done
+    fi
 }
 
 setUp() {

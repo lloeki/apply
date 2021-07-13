@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 set -e
 set -u
@@ -53,7 +53,7 @@ run_group() {
 }
 
 run_unit() {
-    /bin/bash -l -c "set -e; set -u; set -o pipefail; source lib; source '$(root_path)/$*'"
+    /bin/sh -l -c "set -e; set -u; set -o pipefail; . ./lib; . '$(root_path)/$*'"
 }
 
 log_file() {
