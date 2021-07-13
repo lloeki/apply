@@ -40,3 +40,43 @@ substituteInPlace() {
     # Overwrite now that we've succeeded
     mv "$tmpfile" "$fpath"
 }
+
+# Shell-quotes an arbitrary string.
+#
+# From: http://www.etalabs.net/sh_tricks.html
+#
+#     This function simply replaces every instance of «'» (single quote) within
+#     the string with «'\''» (single quote, backslash, single quote, single
+#     quote), then puts single quotes at the beginning and end of the string.
+#     Since the only character whose meaning is special within single quotes is
+#     the single quote character itself, this is totally safe. Trailing
+#     newlines are handled correctly, and the single quote at the end doubles
+#     as a safety character to prevent command substitution from clobbering the
+#     trailing newlines, should one want to do something like:
+#         quoted=$(quote "$var")
+quote() {
+    printf "%s\n" "$1" | sed "s/'/'\\\\''/g;1s/^/'/;\$s/\$/'/"
+}
+
+
+# Returns whether or not a string matches a glob; similar to the bash [[ test,
+# but portable.
+fnmatch() {
+    # We explicitly want this to act as a glob
+    # shellcheck disable=SC2254
+    case "$2" in
+        $1) return 0 ;;
+        *)  return 1 ;;
+    esac
+}
+
+# Portable equivalent to GNU's `date +"%s"`
+#
+# From: http://www.etalabs.net/sh_tricks.html
+epochseconds() {
+    # This is horrible, but... it tells 'date' to generate a string that
+    # contains shell math to generate the actual epoch date.
+    #
+    # TODO(andrew-d): break down and verify the math here
+    echo $(( $(TZ=GMT0 date +"((%Y-1600)*365+(%Y-1600)/4-(%Y-1600)/100+(%Y-1600)/400+1%j-1000-135140)*86400+(1%H-100)*3600+(1%M-100)*60+(1%S-100)") ))
+}

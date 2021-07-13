@@ -67,5 +67,33 @@ testSubstituteInPlace() {
     assertEquals "hi hi hi" "$(cat "$TEST_TMPDIR/sub.txt")"
 }
 
+testQuote() {
+    local input expected
+
+    { input="$(cat)"; } <<EOF
+foo'bar"baz'
+EOF
+
+    { expected="$(cat)"; } <<EOF
+'foo'\\''bar"baz'\\'''
+EOF
+
+    assertEquals "$expected" "$(quote "$input")"
+}
+
+testFnmatch() {
+    assertTrue 'fnmatch "f??*" "foobar"'
+    assertFalse 'fnmatch "f??*" "fo"'
+    assertFalse 'fnmatch "f??*" "loob"'
+}
+
+testEpochseconds() {
+    # TODO(andrew-d): better test
+
+    # Assert that it's numeric by deleting all numbers and verifying that
+    # there's nothing left.
+    assertEquals "" "$(epochseconds | tr -d '[0-9]')"
+}
+
 # Load shUnit2
 . ./shunit2
