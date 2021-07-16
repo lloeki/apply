@@ -123,6 +123,7 @@ sponge() {
             local oldperms
             oldperms="$(stat -c '%a' "$outfile")"
 
+            # Should be a string of length 3 with only digits
             if [ "${#oldperms}" = "3" ] && [ -z "$(echo "$oldperms" | tr -d '0-9')" ]; then
                 chmod "$oldperms" "$tmpfile"
             else
