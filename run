@@ -53,7 +53,7 @@ run_group() {
 }
 
 run_unit() {
-    /bin/sh -l -c "set -e; set -u; set -o pipefail; . ./lib; . '$(root_path)/$*'"
+    /bin/sh -l -c "set -e; set -u; set -o pipefail; . ./lib; test -f facts && . ./facts; . '$(root_path)/$*'"
 }
 
 log_file() {

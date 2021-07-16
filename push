@@ -41,5 +41,16 @@ if scp -q -r "${APPLY_ROOT}"/{groups,units} run lib "$remote":"$tmp"; then
     echo -e " \033[32mOK\033[0m"
 fi
 
+factfile="$APPLY_ROOT/facts/$remote"
+if [[ -f "$factfile" ]]; then
+    if [[ -n "${vflag:-}" ]]; then
+        echo -e -n "\033[33m** pushing facts to\033[0m $remote:$tmp"
+    fi
+
+    if scp -q -r "$factfile" "$remote:$tmp/facts"; then
+        echo -e " \033[32mOK\033[0m"
+    fi
+fi
+
 # shellcheck disable=SC2029
 ssh "$remote" "cd '$tmp' && ./run $vflag ${targets[*]} && cd; rm -rf '$tmp'"
