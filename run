@@ -3,11 +3,11 @@
 set -e
 set -u
 
-RED="$(printf "\033[31m")"      # "$(tput setaf 1)"
-GREEN="$(printf "\033[32m")"    # "$(tput setaf 2)"
-YELLOW="$(printf "\033[33m")"   # "$(tput setaf 3)"
-BLUE="$(printf "\033[34m")"     # "$(tput setaf 4)"
-RESET="$(printf "\033[0m")"     # "$(tput sgr0)"
+RED="$(printf "\033[31m")"          # "$(tput setaf 1)"
+GREEN="$(printf "\033[32m")"        # "$(tput setaf 2)"
+YELLOW="$(printf "\033[33m")"       # "$(tput setaf 3)"
+BLUE="$(printf "\033[34m")"         # "$(tput setaf 4)"
+RESET="$(printf "\033(B\033[m")"    # "$(tput sgr0)"
 
 usage() {
     echo "usage: $(basename "$0") [-v] <target> [<target>...]"
