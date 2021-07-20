@@ -7,9 +7,11 @@ lint:
 
 test: lint test-dash test-bash test-ksh
 
+# Not included by default
 test-ash:
-	@cd test && ash ./lib_test.sh
-	@cd test && ash ./run_test.sh
+	@echo "Path is $$PATH"
+	@cd test && busybox ash ./lib_test.sh
+	@cd test && busybox ash ./run_test.sh
 
 test-dash:
 	@cd test && dash ./lib_test.sh
@@ -23,4 +25,4 @@ test-ksh:
 	@cd test && ksh ./lib_test.sh
 	@cd test && ksh ./run_test.sh
 
-.PHONY: lint test test-dash test-bash
+.PHONY: lint test test-ash test-dash test-bash test-ksh

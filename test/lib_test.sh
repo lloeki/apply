@@ -96,6 +96,12 @@ testEpochseconds() {
 }
 
 testUserHomedir() {
+    # TODO(andrew-d): this doesn't work in the Nix sandbox; detect this and
+    # skip the test for now.
+    if [ "$HOME" = "/homeless-shelter" ]; then
+        return
+    fi
+
     assertEquals "$HOME" "$(user_homedir "$USER")"
 }
 
