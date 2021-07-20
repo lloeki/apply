@@ -1,0 +1,28 @@
+name: CI
+
+on:
+  push:
+    branches: [ $default-branch ]
+  pull_request:
+    branches: [ $default-branch ]
+
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Install required packages
+        run: >-
+          sudo apt-get install
+          bash
+          busybox
+          dash
+          ksh
+          shellcheck
+
+      - uses: actions/checkout@v2
+
+      - name: Run tests
+        run: make test
